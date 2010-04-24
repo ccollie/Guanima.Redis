@@ -99,9 +99,7 @@ namespace Guanima.Redis.Tests
             using (new RedisClient(mcc)) ;
         }
 
-   
-
-	
+   	
       
         [Test]
         public void SortTest()
@@ -123,38 +121,6 @@ namespace Guanima.Redis.Tests
                 i--;
             }
         }
-
-        //[TestCase]
-        //public void MultiGetTest()
-        //{
-        //    // note, this test will fail, if Redis version is < 1.2.4
-        //    RedisClient client = new RedisClient();
-
-        //    List<string> keys = new List<string>();
-
-        //    for (int i = 0; i < 100; i++)
-        //    {
-        //        string k = "multi_get_test_" + i;
-        //        keys.Add(k);
-
-        //        client[k] = i;
-        //    }
-
-        //    IDictionary<string, ulong> cas;
-        //    var retvals = client.MGet(keys);
-
-        //    Assert.AreEqual<int>(100, retvals.Count, "MultiGet should have returned 100 items.");
-
-        //    object value;
-
-        //    for (int i = 0; i < retvals.Count; i++)
-        //    {
-        //        string key = "multi_get_test_" + i;
-
-        //        Assert.IsTrue(retvals.TryGetValue(key, out value), "missing key: " + key);
-        //        Assert.AreEqual(value, i, "Invalid value returned: " + value);
-        //    }
-        //}
 
     }
 }
