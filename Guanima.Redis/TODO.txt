@@ -1,0 +1,8 @@
+﻿Return codes for LLEN (from Wiki)
+-1 no such key
+-2 operation against the a key holding a value of the wrong type
+-3 source and destiantion objects/dbs are the same
+-4 argument out of range
+
+Map these to an exception on failed LLEN. See if the other ?LEN functions may 
+have similar return codes

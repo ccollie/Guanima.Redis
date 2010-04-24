@@ -1,0 +1,285 @@
+﻿<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{D438C0B3-A168-40B8-BDDD-61F0939DFF35}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Guanima.Redis</RootNamespace>
+    <AssemblyName>Guanima.Redis</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkSubset>
+    </TargetFrameworkSubset>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CodeAnalysisRules>-Microsoft.Globalization#CA1301;-Microsoft.Globalization#CA1302;-Microsoft.Globalization#CA1306;-Microsoft.Globalization#CA1304;-Microsoft.Globalization#CA1305;-Microsoft.Globalization#CA2101;-Microsoft.Globalization#CA1300</CodeAnalysisRules>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;SIGN</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release\Guanima.Redis.xml</DocumentationFile>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <CodeAnalysisRules>-Microsoft.Design#CA1020;-Microsoft.Naming#CA1709;-Microsoft.Naming#CA1704</CodeAnalysisRules>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\binaries\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Commands\CommandHelpers.cs" />
+    <Compile Include="Commands\Connection\PingCommand.cs" />
+    <Compile Include="Commands\Connection\ShutdownCommand.cs" />
+    <Compile Include="Commands\Control\MonitorCommand.cs" />
+    <Compile Include="Commands\Generic\EchoCommand.cs" />
+    <Compile Include="Commands\Hashes\HMGetCommand.cs" />
+    <Compile Include="Commands\Hashes\HSetNXCommand.cs" />
+    <Compile Include="Commands\Hashes\HMSetCommand.cs" />
+    <Compile Include="Commands\KeyValueCommand.cs" />
+    <Compile Include="Commands\PubSub\PUnsubscribeCommand.cs" />
+    <Compile Include="Commands\PubSub\PSubscribeCommand.cs" />
+    <Compile Include="Commands\Strings\AppendCommand.cs" />
+    <Compile Include="Commands\Strings\SetExCommand.cs" />
+    <Compile Include="Commands\Strings\MSetCommand.cs" />
+    <Compile Include="Commands\Strings\MSetNXCommand.cs" />
+    <Compile Include="Commands\Strings\SubstrCommand.cs" />
+    <Compile Include="Configuration\AuthenticationConfiguration.cs" />
+    <Compile Include="Configuration\ConfigurationHelper.cs" />
+    <Compile Include="Configuration\AuthenticationElement.cs" />
+    <Compile Include="Configuration\EndPointConfiguration.cs" />
+    <Compile Include="Configuration\IAuthenticationConfiguration.cs" />
+    <Compile Include="Configuration\IEndPointConfiguration.cs" />
+    <Compile Include="Configuration\SocketPoolConfiguration.cs" />
+    <Compile Include="Extensions\ArrayExtensions.cs" />
+    <Compile Include="RedisClusterException.cs" />
+    <Compile Include="Extensions\ObjectExtensions.cs" />
+    <Compile Include="KeyTransformers\AbstractNamespaceKeyTransformer.cs" />
+    <Compile Include="KeyTransformers\NamespaceKeyTransformer.cs" />
+    <Compile Include="Protocol\IRedisProtocol.cs" />
+    <Compile Include="Protocol\RedisProtocol.cs" />
+    <Compile Include="RedisClient.Connection.cs" />
+    <Compile Include="RedisClient.Control.cs" />
+    <Compile Include="RedisClient.Poco.cs" />
+    <Compile Include="RedisLockToken.cs" />
+    <Compile Include="RedisValue.cs" />
+    <Compile Include="Utils\Disposable.cs" />
+    <Compile Include="Utils\DisposableAction.cs" />
+    <Compile Include="Utils\DisposableActionT.cs" />
+    <Compile Include="Extensions\ByteArrayExtensions.cs" />
+    <Compile Include="Extensions\DateTimeExtensions.cs" />
+    <Compile Include="Extensions\EnumerableExtensions.cs" />
+    <Compile Include="Extensions\IntExtensions.cs" />
+    <Compile Include="Extensions\RedisClientExtensions.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="Commands\RedisCommand.cs" />
+    <Compile Include="IRedisClientTransaction.cs" />
+    <Compile Include="RedisClient.Sets.cs" />
+    <Compile Include="RedisPipeline.cs" />
+    <Compile Include="Commands\Generic\AdHocCommand.cs" />
+    <Compile Include="Commands\Generic\PipelineCommand.cs" />
+    <Compile Include="Commands\Generic\SortCommand.cs" />
+    <Compile Include="Commands\Generic\SortCommandBuilder.cs" />
+    <Compile Include="Commands\Hashes\HIncrByCommand.cs" />
+    <Compile Include="Commands\KeyCommand.cs" />
+    <Compile Include="Commands\PubSub\PublishCommand.cs" />
+    <Compile Include="Commands\PubSub\UnsubscribeCommand.cs" />
+    <Compile Include="Commands\PubSub\SubscribeCommand.cs" />
+    <Compile Include="Commands\Sets\SMoveCommand.cs" />
+    <Compile Include="Commands\Sets\SUnionCommand.cs" />
+    <Compile Include="Commands\Sets\SDiffCommand.cs" />
+    <Compile Include="Commands\Sets\SInterCommand.cs" />
+    <Compile Include="Commands\Sets\SInterStoreCommand.cs" />
+    <Compile Include="Commands\Sets\SDiffStoreCommand.cs" />
+    <Compile Include="Commands\Sets\SUnionStoreCommand.cs" />
+    <Compile Include="Commands\Sets\SCardCommand.cs" />
+    <Compile Include="Commands\Sets\SRandMemberCommand.cs" />
+    <Compile Include="Commands\Sets\SIsMemberCommand.cs" />
+    <Compile Include="Commands\Sets\SAddCommand.cs" />
+    <Compile Include="Commands\Sets\SMembersCommand.cs" />
+    <Compile Include="Commands\Sets\SRemCommand.cs" />
+    <Compile Include="Commands\Sets\SPopCommand.cs" />
+    <Compile Include="Commands\SortedSets\BaseUnionIntersectionCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZInterCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRemRangeByScoreCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRemRangeByRankCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRangeByScoreCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRevRangeByScoreCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRevRangeCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRangeCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZScoreCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZCardCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRevRankCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRankCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZIncrByCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZRemCommand.cs" />
+    <Compile Include="Commands\SortedSets\ZAddCommand.cs" />
+    <Compile Include="CommandArgumentException.cs" />
+    <Compile Include="Commands\SortedSets\ZUnionCommand.cs" />
+    <Compile Include="RedisClient.Pipeline.cs" />
+    <Compile Include="RedisClient.cs" />
+    <Compile Include="Commands\Connection\AuthCommand.cs" />
+    <Compile Include="Commands\Connection\QuitCommand.cs" />
+    <Compile Include="Commands\Control\BGRewriteAOFCommand.cs" />
+    <Compile Include="Commands\Control\InfoCommand.cs" />
+    <Compile Include="Commands\Control\LastSaveCommand.cs" />
+    <Compile Include="Commands\Control\ShutdownCommand.cs" />
+    <Compile Include="Commands\Control\SlaveOfCommand.cs" />
+    <Compile Include="Commands\Generic\MoveCommand.cs" />
+    <Compile Include="Commands\Generic\ExpireAtCommand.cs" />
+    <Compile Include="Commands\Generic\ExpireCommand.cs" />
+    <Compile Include="Commands\Generic\SelectCommand.cs" />
+    <Compile Include="Commands\Generic\TtlCommand.cs" />
+    <Compile Include="Commands\Generic\FlushAllCommand.cs" />
+    <Compile Include="Commands\Generic\DBSizeCommand.cs" />
+    <Compile Include="Commands\Generic\FlushDBCommand.cs" />
+    <Compile Include="Commands\Generic\RandomKeyCommand.cs" />
+    <Compile Include="Commands\Generic\DelCommand.cs" />
+    <Compile Include="Commands\Generic\ExistsCommand.cs" />
+    <Compile Include="Commands\Generic\KeysCommand.cs" />
+    <Compile Include="Commands\Generic\RenameCommand.cs" />
+    <Compile Include="Commands\Generic\RenameNXCommand.cs" />
+    <Compile Include="Commands\Generic\TypeCommand.cs" />
+    <Compile Include="Commands\Control\BGSaveCommand.cs" />
+    <Compile Include="Commands\Control\SaveCommand.cs" />
+    <Compile Include="Commands\Hashes\HGetAllCommand.cs" />
+    <Compile Include="Commands\Hashes\HashFieldCommand.cs" />
+    <Compile Include="Commands\Hashes\HDelCommand.cs" />
+    <Compile Include="Commands\Hashes\HExistsCommand.cs" />
+    <Compile Include="Commands\Hashes\HGetCommand.cs" />
+    <Compile Include="Commands\Hashes\HKeysCommand.cs" />
+    <Compile Include="Commands\Hashes\HLenCommand.cs" />
+    <Compile Include="Commands\Hashes\HSetCommand.cs" />
+    <Compile Include="Commands\Hashes\HValsCommand.cs" />
+    <Compile Include="Commands\Lists\BLPopCommand.cs" />
+    <Compile Include="Commands\Lists\BRPopCommand.cs" />
+    <Compile Include="Commands\Lists\LRemCommand.cs" />
+    <Compile Include="Commands\Lists\RPopCommand.cs" />
+    <Compile Include="Commands\Lists\LTrimCommand.cs" />
+    <Compile Include="Commands\Lists\RPopLPushCommand.cs" />
+    <Compile Include="Commands\Lists\LRangeCommand.cs" />
+    <Compile Include="Commands\Lists\LSetCommand.cs" />
+    <Compile Include="Commands\Lists\LIndexCommand.cs" />
+    <Compile Include="Commands\Lists\LLenCommand.cs" />
+    <Compile Include="Commands\Lists\LPopCommand.cs" />
+    <Compile Include="Commands\Lists\RPushCommand.cs" />
+    <Compile Include="Commands\Lists\LPushCommand.cs" />
+    <Compile Include="Commands\Strings\DecrByCommand.cs" />
+    <Compile Include="Commands\Strings\DecrCommand.cs" />
+    <Compile Include="Commands\Strings\MGetCommand.cs" />
+    <Compile Include="Commands\Strings\IncrByCommand.cs" />
+    <Compile Include="Commands\Strings\IncrCommand.cs" />
+    <Compile Include="Commands\Strings\SetNXCommand.cs" />
+    <Compile Include="Commands\Strings\GetSetCommand.cs" />
+    <Compile Include="Commands\Strings\GetCommand.cs" />
+    <Compile Include="Commands\Strings\SetCommand.cs" />
+    <Compile Include="Commands\Transactions\DiscardCommand.cs" />
+    <Compile Include="Commands\Transactions\ExecCommand.cs" />
+    <Compile Include="Commands\Transactions\MultiCommand.cs" />
+    <Compile Include="Commands\Transactions\MultiExecCommand.cs" />
+    <Compile Include="IRedisPipeline.cs" />
+    <Compile Include="Commands\IRedisCommand.cs" />
+    <Compile Include="IServerResponse.cs" />
+    <Compile Include="NullKeyTagExtractor.cs" />
+    <Compile Include="DefaultKeyTagExtractor.cs" />
+    <Compile Include="IAuthenticator.cs" />
+    <Compile Include="IKeyTagExtractor.cs" />
+    <Compile Include="IRedisNode.cs" />
+    <Compile Include="IServerPool.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="NodeLocators\KetamaNodeLocator.cs" />
+    <Compile Include="KeyTransformers\DefaultKeyTransformer.cs" />
+    <Compile Include="Utils\HashCodeCombiner.cs" />
+    <Compile Include="Utils\InterlockedQueue.cs" />
+    <Compile Include="CommandNotSupportedException.cs" />
+    <Compile Include="IRedisKeyTransformer.cs" />
+    <Compile Include="KeyTransformers\Base64KeyTransformer.cs" />
+    <Compile Include="KeyTransformers\KeyTransformerBase.cs" />
+    <Compile Include="KeyTransformers\SHA1KeyTransformer.cs" />
+    <Compile Include="KeyTransformers\TigerHashKeyTransformer.cs" />
+    <Compile Include="RedisClient.Generic.cs" />
+    <Compile Include="RedisClient.Hashes.cs" />
+    <Compile Include="RedisClient.Lists.cs" />
+    <Compile Include="RedisClient.Locks.cs" />
+    <Compile Include="RedisClient.SortedSets.cs" />
+    <Compile Include="RedisClient.Strings.cs" />
+    <Compile Include="RedisClient.Transactions.cs" />
+    <Compile Include="RedisClientTransaction.cs" />
+    <Compile Include="RedisNode.cs" />
+    <Compile Include="Utils\BinaryConverter.cs" />
+    <Compile Include="Utils\PropertyReflector.cs" />
+    <Compile Include="RedisReply.cs" />
+    <Compile Include="RedisResponseException.cs" />
+    <Compile Include="NodeLocators\SingleNodeLocator.cs" />
+    <Compile Include="StatItem.cs" />
+    <Compile Include="Transcoders\DefaultTranscoder.cs" />
+    <Compile Include="Configuration\IRedisClientConfiguration.cs" />
+    <Compile Include="Configuration\EndPointElement.cs" />
+    <Compile Include="Configuration\InterfaceValidator.cs" />
+    <Compile Include="Configuration\ISocketPoolConfiguration.cs" />
+    <Compile Include="Configuration\RedisClientConfiguration.cs" />
+    <Compile Include="Configuration\SocketPoolElement.cs" />
+    <Compile Include="Configuration\EndPointElementCollection.cs" />
+    <Compile Include="Utils\FastActivator.cs" />
+    <Compile Include="Utils\IFastObjectFactory.cs" />
+    <Compile Include="NodeLocators\DefaultNodeLocator.cs" />
+    <Compile Include="IRedisNodeLocator.cs" />
+    <Compile Include="Utils\FnvHash.cs" />
+    <Compile Include="RedisClientException.cs" />
+    <Compile Include="Configuration\RedisClientSection.cs" />
+    <Compile Include="RedisException.cs" />
+    <Compile Include="PooledSocket.cs" />
+    <Compile Include="ServerStats.cs" />
+    <Compile Include="ThrowHelper.cs" />
+    <Compile Include="Transcoders\CacheItem.cs" />
+    <Compile Include="Transcoders\ITranscoder.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ServerPool.cs" />
+    <Compile Include="Utils\TigerHash.cs" />
+    <Compile Include="Utils\UIntEqualityComparer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="ClassDiagram1.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="License.html" />
+    <Content Include="TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Client\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

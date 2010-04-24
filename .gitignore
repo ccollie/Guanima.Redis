@@ -1,0 +1,6 @@
+**/bin/*
+**/obj/*
+TestResults/*
+*.suo
+*.user
+_Resharper.Guanima.Redis/*
