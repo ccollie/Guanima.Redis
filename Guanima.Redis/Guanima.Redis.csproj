@@ -233,7 +233,6 @@
     <Compile Include="RedisNode.cs" />
     <Compile Include="Utils\BinaryConverter.cs" />
     <Compile Include="Utils\PropertyReflector.cs" />
-    <Compile Include="RedisReply.cs" />
     <Compile Include="RedisResponseException.cs" />
     <Compile Include="NodeLocators\SingleNodeLocator.cs" />
     <Compile Include="StatItem.cs" />
