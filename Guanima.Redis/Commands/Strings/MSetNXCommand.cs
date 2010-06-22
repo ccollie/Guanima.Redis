@@ -8,7 +8,7 @@ namespace Guanima.Redis.Commands.Strings
     {
         public MSetNXCommand(ICollection<KeyValuePair<string, RedisValue>> values)
         {
-            Elements = CommandUtils.ConstructParameters(Name, values);
+            Arguments = CommandUtils.ConstructParameters(Name, values);
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class SetTests : BaseRedisClientTests
+    public class SetTests : RedisClientTestFixture
     {
 
         [Test]

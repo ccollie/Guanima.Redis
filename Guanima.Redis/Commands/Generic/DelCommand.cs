@@ -8,7 +8,7 @@ namespace Guanima.Redis.Commands.Generic
     {
         public DelCommand(IEnumerable<string> keys)
         {
-            Elements = CommandUtils.ConstructParameters(Name,keys);
+            Arguments = CommandUtils.ConstructParameters(Command.Del,keys);
         }
 
         public DelCommand(string key) 

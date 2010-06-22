@@ -72,7 +72,7 @@ namespace Guanima.Redis
         public int DBSize()
         {
             int result = 0;
-            ForeachServer(node => result += ExecuteInt(node, new DBSizeCommand()));
+            ForEachServer(node => result += ExecuteInt(node, new DBSizeCommand()));
             return result;
         }
 
@@ -92,7 +92,7 @@ namespace Guanima.Redis
             // Maybe error out if more than 1 server ?
             int count = 0;
             var result = RedisValue.Empty; 
-            ForeachServer(node=>
+            ForEachServer(node=>
                               {
                                   if (count == 0)
                                   {
@@ -106,7 +106,7 @@ namespace Guanima.Redis
 
         public RedisClient FlushAll()
         {
-            ForeachServer(node => Execute(node, new FlushAllCommand()));
+            ForEachServer(node => Execute(node, new FlushAllCommand()));
             return this;
         }
 
@@ -119,7 +119,7 @@ namespace Guanima.Redis
         public RedisClient FlushDB()
         {
             // TODO: cluster command
-            ForeachServer(node => Execute(node, new FlushDBCommand()));
+            ForEachServer(node => Execute(node, new FlushDBCommand()));
             return this;
         }
 
@@ -196,7 +196,7 @@ namespace Guanima.Redis
             {
                 // raise warning
             }
-            ForeachServer(node=>Execute(node, new SelectCommand(db)));
+            ForEachServer(node=>Execute(node, new SelectCommand(db)));
             _currentDb = db;            
             return this;
         }

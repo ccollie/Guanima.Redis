@@ -8,7 +8,7 @@ namespace Guanima.Redis.Commands.Strings
     {
         public MGetCommand(IEnumerable<string> keys) 
         {
-            Elements = CommandUtils.ConstructParameters(Name, keys);
+            Arguments = CommandUtils.ConstructParameters(Name, keys);
         }
     }
 }

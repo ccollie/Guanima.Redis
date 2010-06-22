@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Guanima.Redis.Commands
 {
@@ -20,9 +19,41 @@ namespace Guanima.Redis.Commands
             return parameters;
         }
 
+
         public static RedisValue[] ConstructParameters(string name, IEnumerable<string> keys)
         {
             return ConstructParameters(name, null, keys);
+        }
+
+        public static RedisValue[] ConstructParameters(byte[] name, IEnumerable<string> keys)
+        {
+            return ConstructParameters(name, null, keys);
+        }
+
+        public static RedisValue[] ConstructParameters(byte[] name, string dstKey, IEnumerable<string> keys)
+        {
+            if (keys == null)
+                throw new ArgumentNullException("keys");
+            var count = keys.Count();
+            if (count == 0)
+                throw new ArgumentException("At least 1 source key must be specified.");
+
+            bool hasDest = dstKey != null;
+            var parameters = new RedisValue[count + (hasDest ? 2 : 1)];
+            int i = 1;
+            parameters[0] = name;
+            if (hasDest)
+            {
+                parameters[1] = dstKey;
+                i++;
+            }
+            foreach (var key in keys)
+            {
+                if (key == null)
+                    throw new ArgumentNullException("keys", "Null value found for key");
+                parameters[i++] = key;
+            }
+            return parameters;
         }
 
         public static RedisValue[] ConstructParameters(string name, string dstKey, IEnumerable<string> keys)

@@ -63,7 +63,7 @@ namespace Guanima.Redis.Commands.SortedSets
             return sb.ToString();
         }
 
-        public override void SendCommand(IRedisProtocol protocol)
+        public override void WriteTo(PooledSocket socket)
         {
             var sb = new StringBuilder()
                 .Append(" ")

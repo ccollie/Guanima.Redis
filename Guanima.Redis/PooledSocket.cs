@@ -12,6 +12,8 @@ namespace Guanima.Redis
 	[DebuggerDisplay("[ Address: {_endpoint}, IsAlive = {IsAlive} ]")]
 	public class PooledSocket : IDisposable
 	{
+        private readonly byte[] CrLf = new[] { (byte)'\r', (byte)'\n' };
+
 		private static log4net.ILog log = log4net.LogManager.GetLogger(typeof(PooledSocket));
 
 		private bool _isAlive = true;
@@ -19,7 +21,9 @@ namespace Guanima.Redis
 		private Action<PooledSocket> _cleanupCallback;
 		private readonly IPEndPoint _endpoint;
 
+	    private readonly NetworkStream _stream;
 		private BufferedStream _inputStream;
+        private BufferedStream _wStream;
 
 	    internal PooledSocket(IPEndPoint endpoint, TimeSpan connectionTimeout, TimeSpan receiveTimeout, Action<PooledSocket> cleanupCallback)
 		{
@@ -35,7 +39,10 @@ namespace Guanima.Redis
 			_socket.NoDelay = true;
 
 			_socket.Connect(endpoint);
-			_inputStream = new BufferedStream(new BasicNetworkStream(_socket));
+	        _stream = new NetworkStream(_socket);
+			//_inputStream = new BufferedStream(new BasicNetworkStream(_socket));
+            _inputStream = new BufferedStream(_stream, 16 * 1024);
+            _wStream = new BufferedStream(_stream, 16 * 1024);
 		}
 
 	    public IRedisNode OwnerNode { get; internal set; }
@@ -61,13 +68,14 @@ namespace Guanima.Redis
 				if (log.IsWarnEnabled)
 					log.WarnFormat("Socket bound to {0} has {1} unread data! This is probably a bug in the code. InstanceID was {2}.", _socket.RemoteEndPoint, available, InstanceId);
 
-				byte[] data = new byte[available];
+				var data = new byte[available];
 
 				Read(data, 0, available);
 
 				if (log.IsWarnEnabled)
 					log.Warn(Encoding.ASCII.GetString(data));
 			}
+		    _wStream.Seek(0, SeekOrigin.Begin); // ??
 
 			if (log.IsDebugEnabled)
 				log.DebugFormat("Socket {0} was reset", InstanceId);
@@ -110,8 +118,9 @@ namespace Guanima.Redis
 				}
 
 				_inputStream.Dispose();
-
 				_inputStream = null;
+			    _wStream.Dispose();
+			    _wStream = null;
 				_socket = null;
 				_cleanupCallback = null;
 			}
@@ -190,6 +199,20 @@ namespace Guanima.Redis
 			}
 		}
 
+        /// <summary>
+        /// Receives a set number of bytes from the network
+        /// </summary>
+        /// <param name="byteCount">The byte count.</param>
+        /// <returns>The received bytes</returns>
+        public byte[] ReceiveBytes(int byteCount)
+        {
+            // Check.IsInRange(byteCount, 0, Int32.MaxValue, "byteCount");
+            var buf = new byte[byteCount];
+            Read(buf, 0, byteCount);
+            return buf;
+        }
+
+
         public string ReadLine()
         {
             var sb = new StringBuilder();
@@ -206,6 +229,7 @@ namespace Guanima.Redis
             return sb.ToString();
         }
 
+    
 		public void Write(ArraySegment<byte> data)
 		{
 			Write(data.Array, data.Offset, data.Count);
@@ -246,7 +270,7 @@ namespace Guanima.Redis
 			CheckDisposed();
 
 			SocketError status;
-
+            
 			_socket.Send(buffers, SocketFlags.None, out status);
 
 			if (status != SocketError.Success)
@@ -257,7 +281,91 @@ namespace Guanima.Redis
 			}
 		}
 
-		#region [ BasicNetworkStream           ]
+
+        private static byte[] GetCmdBytes(char cmdPrefix, int noOfLines)
+        {
+            var strLines = noOfLines.ToString();
+            var strLinesLength = strLines.Length;
+
+            var cmdBytes = new byte[1 + strLinesLength + 2];
+            cmdBytes[0] = (byte)cmdPrefix;
+
+            for (var i = 0; i < strLinesLength; i++)
+                cmdBytes[i + 1] = (byte)strLines[i];
+
+            cmdBytes[1 + strLinesLength] = 0x0D; // \r
+            cmdBytes[2 + strLinesLength] = 0x0A; // \n
+
+            return cmdBytes;
+        }
+
+        public bool SendCommand(params byte[][] cmdWithBinaryArgs)
+        {
+            return SendCommand(true, cmdWithBinaryArgs);
+        }
+
+        /// <summary>
+        /// Command to set multiple binary safe arguments
+        /// </summary>
+        /// <param name="flush"></param>
+        /// <param name="cmdWithBinaryArgs"></param>
+        /// <returns></returns>
+        public bool SendCommand(bool flush, params byte[][] cmdWithBinaryArgs)
+        {
+            CheckDisposed();
+
+            //CmdLog(cmdWithBinaryArgs);
+
+            //Total command lines count
+            WriteToSendBuffer(GetCmdBytes('*', cmdWithBinaryArgs.Length));
+
+            foreach (var safeBinaryValue in cmdWithBinaryArgs)
+            {
+                WriteToSendBuffer(GetCmdBytes('$', safeBinaryValue.Length));
+                WriteToSendBuffer(safeBinaryValue);
+                WriteToSendBuffer(CrLf);
+            }
+            if (flush)
+                FlushSendBuffer();
+
+            return true;
+        }
+
+        byte[] _cmdBuffer = new byte[32 * 1024];
+        int _cmdBufferIndex = 0;
+
+        public void WriteToSendBuffer(byte[] cmdBytes)
+        {
+            if ((_cmdBufferIndex + cmdBytes.Length) > _cmdBuffer.Length)
+            {
+                const int breathingSpaceToReduceReallocations = (32 * 1024);
+                var newLargerBuffer = new byte[_cmdBufferIndex + cmdBytes.Length + breathingSpaceToReduceReallocations];
+                Buffer.BlockCopy(_cmdBuffer, 0, newLargerBuffer, 0, _cmdBuffer.Length);
+                _cmdBuffer = newLargerBuffer;
+            }
+
+            Buffer.BlockCopy(cmdBytes, 0, _cmdBuffer, _cmdBufferIndex, cmdBytes.Length);
+            _cmdBufferIndex += cmdBytes.Length;
+        }
+
+        public void FlushSendBuffer()
+        {
+            if (_cmdBufferIndex > 0)
+            {
+                CheckDisposed();
+                _wStream.Write(_cmdBuffer, 0, _cmdBufferIndex);
+                Write(_cmdBuffer, 0, _cmdBufferIndex);
+                _cmdBufferIndex = 0;
+                _wStream.Flush();
+            }
+        }
+
+	    internal Socket Socket
+	    {
+            get { return _socket; }
+	    }
+
+        #region [ BasicNetworkStream           ]
 		private class BasicNetworkStream : Stream
 		{
 			private readonly Socket _socket;

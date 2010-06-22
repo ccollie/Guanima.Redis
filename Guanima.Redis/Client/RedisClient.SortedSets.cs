@@ -108,7 +108,6 @@ namespace Guanima.Redis
   
         public int ZInter(string destKey, IEnumerable<string> keys)
         {
-            // TODO: Cluster warning
             var transformedKey = TransformKey(destKey);
             var transformedKeys = TransformKeys(keys);
 
@@ -120,7 +119,6 @@ namespace Guanima.Redis
 
         public int ZInter(string destKey, IEnumerable<string> keys, IEnumerable<double> weights, AggregateType aggregateType)
         {
-            // TODO: Cluster warning
             var transformedKey = TransformKey(destKey);
             var transformedKeys = TransformKeys(keys);
 

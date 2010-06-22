@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Threading;
 using Guanima.Redis.Configuration;
 using Guanima.Redis.KeyTransformers;
 using Guanima.Redis.NodeLocators;

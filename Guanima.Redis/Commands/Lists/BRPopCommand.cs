@@ -20,7 +20,7 @@ namespace Guanima.Redis.Commands.Lists
                 parameters[i++] = key;
             }
             parameters[i] = timeoutInSeconds;
-            Elements = parameters;
+            Arguments = parameters;
         }
 
         public BRPopCommand(IEnumerable<string> keys, TimeSpan timeout) :

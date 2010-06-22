@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class SortedSetTests : BaseRedisClientTests
+    public class SortedSetTests : RedisClientTestFixture
     {
         #region ZCard
 

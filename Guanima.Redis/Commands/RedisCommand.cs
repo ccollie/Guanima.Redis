@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
-using Guanima.Redis.Protocol;
+using Guanima.Redis.Client;
 
 namespace Guanima.Redis.Commands
 {
@@ -15,10 +16,10 @@ namespace Guanima.Redis.Commands
         private RedisValue[] _params;
         private RedisValue? _value;
         private String _name;
-        private Func<RedisValue> _valueReader;
 
         protected RedisCommand()
         {
+            Init(Name);
         }
 
         protected RedisCommand(params RedisValue[] parms)
@@ -32,10 +33,22 @@ namespace Guanima.Redis.Commands
         }
 
 
-        protected RedisValue[] Elements
+        internal RedisValue[] Arguments
         {
             get { return _params;}
             set { _params = value; }
+        }
+
+        internal RedisCommandQueue Queue { get; set; }
+        internal Action<RedisCommand> ValueReader { get; set; }
+
+        protected void Init(byte[] name, params RedisValue[] parameters)
+        {
+            var vals = new RedisValue[1 + parameters.Length];
+            vals[0] = name;
+            if (parameters.Length > 0)
+                parameters.CopyTo(vals, 1);
+            _params = vals;
         }
 
         protected void Init(string name, params RedisValue[] parameters)
@@ -58,6 +71,7 @@ namespace Guanima.Redis.Commands
             if (key == null) throw new ArgumentNullException("key", "Item key must be specified.");
             if (key.Length == 0) throw new ArgumentException("Item key must be specified.", "key");
         }
+
         #region SendCommand
 
         protected long DataLength(byte[] data)
@@ -90,25 +104,26 @@ namespace Guanima.Redis.Commands
             }
         }
 
-        public virtual void SendCommand(IRedisProtocol protocol)
+        public virtual void WriteTo(PooledSocket socket)
         {
-            var p = Elements;
+            var p = Arguments;
             if (p == null || p.Length == 0)
-                protocol.IssueCommand(Name);
-            else
             {
-                var multi = new RedisValue { Type = RedisValueType.MultiBulk, MultiBulkValues = p };
-                protocol.WriteValue(multi);
+                RedisValue nameVal = Name;
+                p = new RedisValue[1] { nameVal };
             }
+            var multi = new RedisValue { Type = RedisValueType.MultiBulk, MultiBulkValues = p };
+            multi.Write(socket);
         }
 
 
-        public virtual void ReadReply(IRedisProtocol protocol)
+        public virtual void ReadFrom(PooledSocket socket)
         {
-            this.Result = protocol.ReadReply();
-            if (Result.Type == RedisValueType.Error)
+            socket.FlushSendBuffer();
+            this.Value = RedisValue.Read(socket);
+            if (Value.Type == RedisValueType.Error)
             {
-                throw new RedisException(Result.ErrorText);
+                throw new RedisException(Value.ErrorText);
             }
         }
 
@@ -132,19 +147,24 @@ namespace Guanima.Redis.Commands
 
         #endregion
 
-        public virtual RedisValue Execute(RedisProtocol protocol)
+        public virtual RedisValue Execute(PooledSocket socket)
         {
-            SendCommand(protocol);
-            ReadReply(protocol);
-            return Result;
+            WriteTo(socket);
+            ReadFrom(socket);
+            return Value;
         }
 
  
-        public virtual RedisValue Result
+        public virtual RedisValue Value
         {
             get
             {
-                return _value.HasValue ? _value.Value : RedisValue.Empty; // todo: have a null 
+                if (!_value.HasValue)
+                {
+                    if (Queue != null)
+                        Queue.ReadResultForCommand(this);
+                }
+                return _value.Value;
             }
             internal set
             {
@@ -162,16 +182,12 @@ namespace Guanima.Redis.Commands
 
         public static implicit operator RedisValue(RedisCommand command)
         {
-            return command.Result;
+            return command.Value;
         }
     }
 
     public abstract class ZeroArgsCommand : RedisCommand
     {
-        public override void SendCommand(IRedisProtocol protocol)
-        {
-            protocol.IssueCommand(Name);
-        }
     }
 
    
@@ -186,7 +202,7 @@ namespace Guanima.Redis.Commands
             if (_keys.Count == 0)
                 throw new ArgumentException("At least one key must be specified.", "keys");
 
-            Elements = CommandUtils.ConstructParameters(Name, null, keys);
+            Arguments = CommandUtils.ConstructParameters(Name, null, keys);
         }
 
 

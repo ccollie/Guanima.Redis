@@ -53,7 +53,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Client\ClientAsynchState.cs" />
+    <Compile Include="Client\RedisClient.PubSub.cs" />
+    <Compile Include="Client\RedisCommandQueue.cs" />
+    <Compile Include="Client\RedisSubscription.cs" />
+    <Compile Include="Commands\CommandBuffer.cs" />
     <Compile Include="Commands\CommandHelpers.cs" />
+    <Compile Include="Commands\CommandNames.cs" />
     <Compile Include="Commands\Connection\PingCommand.cs" />
     <Compile Include="Commands\Connection\ShutdownCommand.cs" />
     <Compile Include="Commands\Control\MonitorCommand.cs" />
@@ -69,6 +75,8 @@
     <Compile Include="Commands\Strings\MSetCommand.cs" />
     <Compile Include="Commands\Strings\MSetNXCommand.cs" />
     <Compile Include="Commands\Strings\SubstrCommand.cs" />
+    <Compile Include="Commands\Transactions\UnwatchCommand.cs" />
+    <Compile Include="Commands\Transactions\WatchCommand.cs" />
     <Compile Include="Configuration\AuthenticationConfiguration.cs" />
     <Compile Include="Configuration\ConfigurationHelper.cs" />
     <Compile Include="Configuration\AuthenticationElement.cs" />
@@ -77,17 +85,20 @@
     <Compile Include="Configuration\IEndPointConfiguration.cs" />
     <Compile Include="Configuration\SocketPoolConfiguration.cs" />
     <Compile Include="Extensions\ArrayExtensions.cs" />
+    <Compile Include="IRedisSubscription.cs" />
+    <Compile Include="Protocol\ReplyParser.cs" />
     <Compile Include="RedisClusterException.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="KeyTransformers\AbstractNamespaceKeyTransformer.cs" />
     <Compile Include="KeyTransformers\NamespaceKeyTransformer.cs" />
     <Compile Include="Protocol\IRedisProtocol.cs" />
     <Compile Include="Protocol\RedisProtocol.cs" />
-    <Compile Include="RedisClient.Connection.cs" />
-    <Compile Include="RedisClient.Control.cs" />
-    <Compile Include="RedisClient.Poco.cs" />
-    <Compile Include="RedisLockToken.cs" />
+    <Compile Include="Client\RedisClient.Connection.cs" />
+    <Compile Include="Client\RedisClient.Control.cs" />
+    <Compile Include="Client\RedisClient.Poco.cs" />
+    <Compile Include="Client\RedisLockToken.cs" />
     <Compile Include="RedisValue.cs" />
+    <Compile Include="Utils\BufferManager.cs" />
     <Compile Include="Utils\Disposable.cs" />
     <Compile Include="Utils\DisposableAction.cs" />
     <Compile Include="Utils\DisposableActionT.cs" />
@@ -98,8 +109,8 @@
     <Compile Include="Extensions\RedisClientExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Commands\RedisCommand.cs" />
-    <Compile Include="IRedisClientTransaction.cs" />
-    <Compile Include="RedisClient.Sets.cs" />
+    <Compile Include="Client\IRedisClientTransaction.cs" />
+    <Compile Include="Client\RedisClient.Sets.cs" />
     <Compile Include="RedisPipeline.cs" />
     <Compile Include="Commands\Generic\AdHocCommand.cs" />
     <Compile Include="Commands\Generic\PipelineCommand.cs" />
@@ -141,8 +152,8 @@
     <Compile Include="Commands\SortedSets\ZAddCommand.cs" />
     <Compile Include="CommandArgumentException.cs" />
     <Compile Include="Commands\SortedSets\ZUnionCommand.cs" />
-    <Compile Include="RedisClient.Pipeline.cs" />
-    <Compile Include="RedisClient.cs" />
+    <Compile Include="Client\RedisClient.Pipeline.cs" />
+    <Compile Include="Client\RedisClient.cs" />
     <Compile Include="Commands\Connection\AuthCommand.cs" />
     <Compile Include="Commands\Connection\QuitCommand.cs" />
     <Compile Include="Commands\Control\BGRewriteAOFCommand.cs" />
@@ -202,9 +213,9 @@
     <Compile Include="Commands\Transactions\ExecCommand.cs" />
     <Compile Include="Commands\Transactions\MultiCommand.cs" />
     <Compile Include="Commands\Transactions\MultiExecCommand.cs" />
-    <Compile Include="IRedisPipeline.cs" />
+    <Compile Include="Client\IRedisPipeline.cs" />
     <Compile Include="Commands\IRedisCommand.cs" />
-    <Compile Include="IServerResponse.cs" />
+    <Compile Include="Client\ServerResponseConstants.cs" />
     <Compile Include="NullKeyTagExtractor.cs" />
     <Compile Include="DefaultKeyTagExtractor.cs" />
     <Compile Include="IAuthenticator.cs" />
@@ -222,14 +233,14 @@
     <Compile Include="KeyTransformers\KeyTransformerBase.cs" />
     <Compile Include="KeyTransformers\SHA1KeyTransformer.cs" />
     <Compile Include="KeyTransformers\TigerHashKeyTransformer.cs" />
-    <Compile Include="RedisClient.Generic.cs" />
-    <Compile Include="RedisClient.Hashes.cs" />
-    <Compile Include="RedisClient.Lists.cs" />
-    <Compile Include="RedisClient.Locks.cs" />
-    <Compile Include="RedisClient.SortedSets.cs" />
-    <Compile Include="RedisClient.Strings.cs" />
-    <Compile Include="RedisClient.Transactions.cs" />
-    <Compile Include="RedisClientTransaction.cs" />
+    <Compile Include="Client\RedisClient.Generic.cs" />
+    <Compile Include="Client\RedisClient.Hashes.cs" />
+    <Compile Include="Client\RedisClient.Lists.cs" />
+    <Compile Include="Client\RedisClient.Locks.cs" />
+    <Compile Include="Client\RedisClient.SortedSets.cs" />
+    <Compile Include="Client\RedisClient.Strings.cs" />
+    <Compile Include="Client\RedisClient.Transactions.cs" />
+    <Compile Include="Client\RedisClientTransaction.cs" />
     <Compile Include="RedisNode.cs" />
     <Compile Include="Utils\BinaryConverter.cs" />
     <Compile Include="Utils\PropertyReflector.cs" />
@@ -259,19 +270,17 @@
     <Compile Include="Transcoders\ITranscoder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerPool.cs" />
+    <Compile Include="Utils\ResizableBuffer.cs" />
+    <Compile Include="Utils\StringUtils.cs" />
     <Compile Include="Utils\TigerHash.cs" />
     <Compile Include="Utils\UIntEqualityComparer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="License.html" />
     <Content Include="TODO.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Client\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

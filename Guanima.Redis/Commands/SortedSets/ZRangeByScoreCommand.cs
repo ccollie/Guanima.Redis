@@ -39,7 +39,7 @@ namespace Guanima.Redis.Commands.SortedSets
             {
                 parms.Add("WITHSCORES");
             }
-            Elements = parms.ToArray();
+            Arguments = parms.ToArray();
         }
 
     }

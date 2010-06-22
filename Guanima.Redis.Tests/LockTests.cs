@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class LockTests : BaseRedisClientTests
+    public class LockTests : RedisClientTestFixture
     {
         private const string LockName = "_LOCK_";
 
@@ -44,7 +44,7 @@ namespace Guanima.Redis.Tests
             using (r.Lock(LockName))
             {
                 Assert.That(r.Exists(LockName));
-                using(var newClient = GetClient())
+                using(var newClient = CreateClient())
                 {
                     Assert.Throws(typeof (RedisLockTimeoutException),
                                   () =>

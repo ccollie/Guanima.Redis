@@ -8,7 +8,7 @@ namespace Guanima.Redis.Commands.Hashes
     {
         public HMGetCommand(string key, IEnumerable<string> fields)
         {
-            Elements = CommandUtils.ConstructParameters(Name, key, fields);
+            Arguments = CommandUtils.ConstructParameters(Name, key, fields);
         }
     }
 }

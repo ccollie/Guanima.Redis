@@ -1,13 +1,15 @@
 using System;
-using System.IO;
+using System.Net.Sockets;
 using System.Text;
+using Guanima.Redis.Commands;
+using Guanima.Redis.Extensions;
 
 namespace Guanima.Redis.Protocol
 {
     /// <summary>
     /// Low level redis client implementation
     /// </summary>
-    public class RedisProtocol : IRedisProtocol
+    public static class RedisProtocol
     {
         #region Constants
 
@@ -18,77 +20,22 @@ namespace Guanima.Redis.Protocol
         #endregion
 
         #region Fields
-
-        private PooledSocket _socket;
-
         private static readonly Encoding DataEncoding = Encoding.UTF8;
         private static readonly Encoding CommandEncoding = Encoding.ASCII;
-
-
         #endregion
 
-        #region Constructors
+        #region Network send/receive helpers
 
-        public RedisProtocol()
-        {
-            
-        }
-
-        public RedisProtocol(PooledSocket pooledSocket)
-        {
-            _socket = pooledSocket;
-        }
-
-        
-        #endregion
-
-        #region Properties
-        
-        public PooledSocket Socket
-        {
-            get { return _socket; }
-            set { _socket = value; }
-        }
-
-        #endregion
-
-        #region Network send/recieve helpers
-
-        protected PooledSocket GetSocket()
-        {
-            var socket = Socket;
-            if (socket == null)
-                throw new RedisException("Socket not set on protocol handler");
-            return socket;
-        }
-
-        /// <summary>
-        /// Receives a set number of bytes from the network
-        /// </summary>
-        /// <param name="byteCount">The byte count.</param>
-        /// <returns>The received bytes</returns>
-        /// <remarks>
-        /// Adapted from:
-        /// http://www.yoda.arachsys.com/csharp/readbinary.html
-        /// </remarks>
-        private byte[] ReceiveBytes(int byteCount)
-        {
-            // Check.IsInRange(byteCount, 0, Int32.MaxValue, "byteCount");
-            var buf = new byte[byteCount];
-            _socket.Read(buf, 0, byteCount);
-            return buf;
-        }
 
         /// <summary>
         /// Receives a line from the network
         /// </summary>
         /// <returns>The recieved bytes without termination</returns>
-        private byte[] ReceiveLine()
+        private static byte[] ReceiveLine(this PooledSocket socket)
         {
             var offset = 0;
             var buf = new byte[256];
             int read;
-            var socket = GetSocket();
             while (true)
             {
                 // Read one char from response
@@ -119,8 +66,7 @@ namespace Guanima.Redis.Protocol
             }
 
             // Read, check and dispose of termination byte \n
-            var terminator = new byte[1];
-            read = _socket.ReadByte();
+            read = socket.ReadByte();
             if (read <= 0)
                 throw new RedisClientException("Protocol Error");
             if (read != 0xa)
@@ -133,10 +79,8 @@ namespace Guanima.Redis.Protocol
             return outBuf;
         }
 
-        public byte[] ReadBulkData()
+        public static byte[] ReadBulkData(this PooledSocket socket)
         {
-            var socket = GetSocket();
-
             string r = socket.ReadLine();
 
             // Log("R: {0}", r);
@@ -169,10 +113,10 @@ namespace Guanima.Redis.Protocol
         /// Expect a the bulk count from the redis server
         /// </summary>
         /// <returns>Bulk item count</returns>
-        public int ExpectBulkCount()
+        public static int ExpectBulkCount(this PooledSocket socket)
         {
             // Read line
-            var reply = CommandEncoding.GetString(ReceiveLine());
+            var reply = CommandEncoding.GetString(socket.ReceiveLine());
 
             // Check sentinel
             if (!reply.StartsWith(SentinelBulkCount))
@@ -186,10 +130,10 @@ namespace Guanima.Redis.Protocol
         /// Expect a multi bulk reply from the server.
         /// </summary>
         /// <returns>Multi bulk item count</returns>
-        public int ExpectMultiBulkCount()
+        public static int ExpectMultiBulkCount(this PooledSocket socket)
         {
             // Read line
-            var reply = CommandEncoding.GetString(ReceiveLine());
+            var reply = CommandEncoding.GetString(ReceiveLine(socket));
 
             // Check sentinel
             if (!reply.StartsWith(SentinelMultiBulkCount))
@@ -227,85 +171,15 @@ namespace Guanima.Redis.Protocol
 
         #endregion
 
-        #region IRedisNetworkClient Members
-
-        #region Issue commands
-
-        public void IssueCommand(string command, params RedisValue[] parameters)
-        {
-            var vals = new RedisValue[1 + parameters.Length];
-            vals[0] = command;
-            if (parameters.Length > 0)
-                parameters.CopyTo(vals, 1);
-            var toSend = new RedisValue() {Type = RedisValueType.MultiBulk, MultiBulkValues = vals};
-            WriteValue(toSend);
-        }
-
-
-        private void WriteBulk(byte[] buffer)
-        {
-            WriteByte((byte)RedisValueType.Bulk);
-            WriteFollowedByNewline(LongToBuffer(buffer.Length));
-            WriteFollowedByNewline(buffer);                
-        }
-
-        private void WriteFollowedByNewline(byte[] buffer)
-        {
-            _socket.Write(buffer);
-            _socket.WriteNewLine();
-        }
-
-        private void WriteByte(byte b)
-        {
-            var buf = new byte[]{b};
-            _socket.Write(buf);
-        }
-
-        public void WriteValue(RedisValue value)
-        {
-            switch (value.Type)
-            {
-                case RedisValueType.Error:
-                case RedisValueType.Success:
-                case RedisValueType.Integer:
-                case RedisValueType.Bulk:
-                    WriteBulk(value.Data);
-                    break;
-                case RedisValueType.MultiBulk:
-                    WriteByte((byte)value.Type); 
-                    WriteFollowedByNewline(LongToBuffer(value.MultiBulkValues.Length));
-                    foreach (RedisValue child in value.MultiBulkValues)
-                    {
-                        WriteValue(child);
-                    }
-                    break;
-                default:
-                    throw new InvalidDataException("Unknown value type!");
-            }
-        }
-
-   
-        static byte[] StringToBuffer(string str)
-        {
-            return DataEncoding.GetBytes(str);
-        }
-
-        static byte[] LongToBuffer(long value)
-        {
-            return StringToBuffer(value.ToString());
-        }
-
-        #endregion
-
         #region Expect replies
 
         /// <summary>
         /// Waits for an integer reply from the server
         /// </summary>
         /// <returns>Integer reply value</returns>
-        public int ExpectIntegerReply()
+        public static int ExpectIntegerReply(this PooledSocket socket)
         {
-            var reply = CommandEncoding.GetString(ReceiveLine());
+            var reply = CommandEncoding.GetString(socket.ReceiveLine());
 
             CheckServerError(reply);
 
@@ -318,9 +192,9 @@ namespace Guanima.Redis.Protocol
         /// Waits for a single line reply from the server
         /// </summary>
         /// <returns>Single line reply value</returns>
-        public string ExpectSingleLineReply()
+        public static string ExpectSingleLineReply(this PooledSocket socket)
         {
-            var reply = CommandEncoding.GetString(ReceiveLine());
+            var reply = CommandEncoding.GetString(socket.ReceiveLine());
 
             CheckServerError(reply);
 
@@ -334,20 +208,20 @@ namespace Guanima.Redis.Protocol
         /// Waits for a bulk reply from the server as binary.
         /// </summary>
         /// <returns></returns>
-        public byte[] ExpectBulkReply()
+        public static byte[] ExpectBulkReply(this PooledSocket socket)
         {
             // Get bulk count
-            var byteCount = ExpectBulkCount();
+            var byteCount = ExpectBulkCount(socket);
 
             // Check element found
             if (byteCount < 0)
                 return null;
 
             // Read bytes
-            var bytes = ReceiveBytes(byteCount);
+            var bytes = socket.ReceiveBytes(byteCount);
 
             // Read trailing line break \r\n
-            ReceiveBytes(2);
+            socket.ReceiveBytes(2);
 
             // Convert and return
             return bytes;
@@ -358,132 +232,135 @@ namespace Guanima.Redis.Protocol
         /// Waits for a multi bulk reply from the server in binary.
         /// </summary>
         /// <returns>Multi bulk byte/string array.</returns>
-        public byte[][] ExpectMultiBulkReply()
+        public static byte[][] ExpectMultiBulkReply(this PooledSocket socket)
         {
             // Get total result count
-            var resultCount = ExpectMultiBulkCount();
+            var resultCount = socket.ExpectMultiBulkCount();
 
             // Create byte array of arrays big enough
             var retVal = new byte[resultCount][];
 
             // Loop and load each bulk reply into the array
             for (int i = 0; i < resultCount; i++)
-                retVal[i] = ExpectBulkReply();
+                retVal[i] = socket.ExpectBulkReply();
 
             // Done
             return retVal;
         }
 
-        public RedisValue ReadReply()
+
+        public static void ParseSubscriptionResponse(this PooledSocket socket, 
+                ref string action, ref string channel, ref int subscriptionCount)
         {
-            var socket = GetSocket();
-            int c = socket.ReadByte();
-            if (c == -1)
-                throw new RedisResponseException("No more data");
+            // Get total result count
+            var resultCount = socket.ExpectMultiBulkCount();
+            if (resultCount != 3)
+                throw new RedisResponseException("Protocol Error. 3 tokens expected. Got " + resultCount);
 
-            var s = socket.ReadLine();
+            action = socket.ExpectBulkReply().FromUtf8();
+            channel = socket.ExpectBulkReply().FromUtf8();
 
-            //Log("R: " + s);
-            //CheckStatus(c, s);
-            switch (c)
+            subscriptionCount = socket.ExpectIntegerReply();            
+        }
+
+        static RedisValue ReceivePublishedMessage(this PooledSocket socket, ref string channel)
+        {
+            byte[][] result = socket.ExpectMultiBulkReply();
+            channel = result[1].FromUtf8();
+            return result[2];
+        }
+
+        #endregion
+
+        #region Asynch
+
+        public static void AsyncRead(this PooledSocket client, 
+                                        ClientAsyncReadState.ValueReceivedHandler hander, object arg)
+        {
+            try
             {
-                case (int)RedisValueType.MultiBulk:
-                    return ParseMultiBulk(s);
+                // Create the state object.
+                var state = new ClientAsyncReadState
+                                {
+                                    CallbackArg = arg,
+                                    WorkSocket = client.Socket
+                                };
 
-                case (int)RedisValueType.Bulk:
-                    return ParseBulk(s);
+                if (hander != null)
+                    state.ValueReceived += hander;
 
-                case (int)RedisValueType.Success:
-                    return ParseStatus(s);
-
-                case (int)RedisValueType.Error:
-                    return ParseError(s);
-
-                case (int)RedisValueType.Integer:
-                    return ParseInteger(s);
+                // Begin receiving the data from the remote device.
+                client.Socket.BeginReceive(state.Buffer, 0, ClientAsyncReadState.BufferSize, 0,
+                    new AsyncCallback(AsyncReadCallback), state);
             }
-            throw new RedisResponseException("Unrecognized response type prefix : " + (char)c);
-        }
-
-        #region Parser Helpers
-
-        private static RedisValue ParseStatus(string s)
-        {
-            if (!String.IsNullOrEmpty(s))
-                return RedisValue.Success(s);
-
-            throw new RedisResponseException("Null data reply on status request");
-        }
-
-        private static RedisValue ParseError(string s)
-        {
-            if (!String.IsNullOrEmpty(s))
+            catch (Exception e)
             {
-                s = s.StartsWith("ERR") ? s.Substring(4) : s;
-                return RedisValue.Error(s);
+                Console.WriteLine(e.ToString());
             }
-
-            throw new RedisResponseException("No message on error response");
         }
 
-        private static RedisValue ParseInteger(string s)
+        private static void AsyncReadCallback(IAsyncResult ar)
         {
-            long i;
-            if (long.TryParse(s, out i))
+            try
             {
-                return (RedisValue) i;
-            }
-            throw new RedisResponseException("Malformed reply on integer response: " + s);
-        }
-
-        private RedisValue ParseBulk(string line)
-        {
-            if (line == "-1")
-                return RedisValue.Empty;
-
-            int n;
-
-            if (Int32.TryParse(line, out n))
-            {
-                var retbuf = new byte[n];
-                var socket = GetSocket();
-                socket.Read(retbuf, 0, n);
-                if (socket.ReadByte() != '\r' || socket.ReadByte() != '\n')
-                    throw new RedisResponseException("Invalid termination");
-                return retbuf;
-            }
-            throw new RedisResponseException("Invalid length : " + line);
-        }
-
-        private RedisValue ParseMultiBulk(string line)
-        {
-            int count;
-            if (int.TryParse(line, out count))
-            {
-                byte[][] result;
-                if (count == -1)
-                    result = RedisValue.Empty;
-                else if (count == 0)
-                    result = new byte[0][] { };
-                else
+                var state = (ClientAsyncReadState)ar.AsyncState;
+                Socket client = state.WorkSocket;
+   
+                int bytesRead = client.EndReceive(ar);
+                if (bytesRead > 0)
                 {
-                    result = new byte[count][];
-
-                    for (var i = 0; i < count; i++)
+                    // There might be more data, so store the data received so far
+                    state.ReplyParser.Update(state.Buffer, 0, bytesRead);
+                    if (!state.IsComplete)
                     {
-                        result[i] = ReadBulkData();
+                        //  Get the rest of the data.
+                        client.BeginReceive(state.Buffer, 0, ClientAsyncReadState.BufferSize, 0,
+                                            new AsyncCallback(AsyncReadCallback), state);
                     }
                 }
-                return result;
+                else
+                {
+                    // Signal that all bytes have been received.
+                    // receiveDone.Set();
+                }
             }
-            throw new RedisClientException("Expected item count in Multibulk response");
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
+
+        public static void WriteAsync(this PooledSocket socket, RedisCommand command, Action<RedisCommand> callback)
+        {
+            var buffer = new CommandBuffer();
+            buffer.Append(command);
+
+            var state = new ClientAsyncWriteState
+            {
+                Buffer = buffer.Data,
+                CallbackArg = command,
+                WorkSocket = socket.Socket
+            };
+
+            if (callback != null)
+            {
+                state.CommandSent += (args, cmd) => callback(cmd);
+            }
+            socket.Socket.BeginSend(buffer.Data, 0, buffer.Size, SocketFlags.None,
+                new AsyncCallback(EndWriteCmdAsynch), state);
+        }
+
+ 
+        static void EndWriteCmdAsynch(IAsyncResult ar)
+        {
+            var state = (ClientAsyncWriteState)ar;
+            var client = state.WorkSocket;
+
+            client.EndSend(ar);
+            //state.OnCommandWritten(state.Command); // ??????    
         }
 
         #endregion
-
-        #endregion
-
-        #endregion
-
     }
 }

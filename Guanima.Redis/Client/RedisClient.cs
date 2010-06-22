@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
-using Guanima.Redis.Commands.Connection;
-using Guanima.Redis.Commands.Generic;
+using Guanima.Redis.Client;
 using Guanima.Redis.Configuration;
 using Guanima.Redis.Commands;
-using Guanima.Redis.Protocol;
 using Guanima.Redis.Utils;
 
 namespace Guanima.Redis
@@ -24,7 +22,6 @@ namespace Guanima.Redis
 
         private IServerPool _serverPool;
         private Stack<IRedisNode> _onNodeStack;
-        private RedisProtocol protocolHandler = new RedisProtocol();
 
         #region Constructor
 
@@ -69,6 +66,7 @@ namespace Guanima.Redis
             Initialize(pool);
             _serverPool = pool;
             _currentDb = configuration.DefaultDB; // ???
+            _commandQueues = new Dictionary<IRedisNode, RedisCommandQueue>();
         }
 
         private static void Initialize(IServerPool pool)
@@ -84,6 +82,15 @@ namespace Guanima.Redis
         #endregion
 
         #region Nodes/Servers
+
+        internal IEnumerable<IRedisNode> GetNodes()
+        {
+            if (_onNodeStack != null && _onNodeStack.Count > 0)
+            {
+                return new IRedisNode[]{ _onNodeStack.Peek() };
+            }
+            return _serverPool.GetServers();
+        }
 
         public IDisposable On(string alias)
         {
@@ -200,7 +207,7 @@ namespace Guanima.Redis
             }
         }
 
-        protected void ForeachServer(Action<IRedisNode> action)
+        protected void ForEachServer(Action<IRedisNode> action)
         {
             if (_onNodeStack != null && _onNodeStack.Count > 0)
             {
@@ -216,7 +223,7 @@ namespace Guanima.Redis
             }
         }
 
-        protected void ForeachServer(RedisCommand command)
+        protected void ForEachServer(RedisCommand command)
         {
             if (_onNodeStack != null && _onNodeStack.Count > 0)
             {
@@ -224,61 +231,19 @@ namespace Guanima.Redis
                 return;
             }
 
-            ForeachServer(node => Execute(node, command));
+            ForEachServer(node => Execute(node, command));
         }
 
         #endregion
 
         #region Sockets
 
-        protected void DisposeSocket(PooledSocket socket)
+        internal void DisposeSocket(PooledSocket socket)
         {
             if (socket != null)
                 ((IDisposable)socket).Dispose();
         }
-
-
-        protected PooledSocket AcquireSocket(IRedisNode node)
-        {
-            if (CheckDisposed(true))
-                return null;
-            var socket = node.Acquire();
-            if (socket == null)
-                throw new RedisClientException("Unable to acquire socket for node : '" + node.EndPoint + "'");
-
-            try
-            {
-                if (!String.IsNullOrEmpty(node.Password) && !socket.IsAuthorized)
-                {
-                    protocolHandler.Socket = socket;
-                    var command = new AuthCommand(node.Password);
-                    string status = command.Execute(protocolHandler);
-                    if (status != "OK")
-                    {
-                        throw new RedisAuthenticationException("Invalid credentials for node : " + node.Alias);
-                    }
-                    socket.IsAuthorized = true;
-                }
-                // Select proper db if specified in config or (socket.CurrentDB <> currentDB)
-                // Read the comments on Select to get some background on the following.
-                // Im not sure i like this.
-                if (socket.CurrentDb != CurrentDB)
-                {
-                    protocolHandler.Socket = socket;
-                    var command = new SelectCommand(CurrentDB);
-                    command.Execute(protocolHandler);
-                    socket.CurrentDb = CurrentDB;
-                }
-            } 
-            catch
-            {
-                DisposeSocket(socket);
-                throw;                
-            }
-            
-            return socket;
-        }
-
+     
         #endregion
 
         #region Command Execution
@@ -319,16 +284,6 @@ namespace Guanima.Redis
         }
 
         // 
-        private bool CheckEnqueue(IRedisNode node, RedisCommand command)
-        {
-            if (Pipelining || InTransaction)
-            {
-                EnqueueCommand(node, command);
-                return true;
-            }
-            return false;
-        }
-
 
         protected void HandleException(Exception ex)
         {
@@ -344,21 +299,14 @@ namespace Guanima.Redis
         }
 
 
-        public RedisClient Execute(IRedisNode node, RedisCommand command)
+        internal void Execute(IRedisNode node, RedisCommand command)
         {
-            Execute(node, command, true);
-            return this;
-        }
-
-        internal void Execute(IRedisNode node, RedisCommand command, bool possiblyQueued)
-        {
-            if (possiblyQueued && CheckEnqueue(node, command))
+            EnqueueCommand(node, command);
+            if (Pipelining || InTransaction)
                 return;
-            var socket = AcquireSocket(node);
             try
             {
-                protocolHandler.Socket = socket;
-                command.Execute(protocolHandler);
+                var temp = command.Value;
             }
             catch (Exception e)
             {
@@ -366,10 +314,6 @@ namespace Guanima.Redis
                 // while retaining the fire-and-forget behavior
                 HandleException(e);
                 throw;
-            }
-            finally
-            {
-                DisposeSocket(socket);
             }
         }
 
@@ -379,22 +323,17 @@ namespace Guanima.Redis
             var node = GetNodeForTransformedKey(key);
             return ExecValue(node, command);
         }
-
-        public RedisValue ExecValue(IRedisNode node, RedisCommand command)
+ 
+        private RedisValue ExecValue(IRedisNode node, RedisCommand command)
         {
-            return ExecValue(node, command, true);
-        }
-
-        private RedisValue ExecValue(IRedisNode node, RedisCommand command, bool possiblyQueued)
-        {
-            if (possiblyQueued && CheckEnqueue(node, command))
+            EnqueueCommand(node, command);
+            
+            if (Pipelining || InTransaction)
                 return RedisValue.Empty;
-            var socket = AcquireSocket(node);
+
             try
             {
-                protocolHandler.Socket = socket;
-                command.Execute(protocolHandler);
-                return command.Result;
+                return command.Value;
             }
             catch (Exception e)
             {
@@ -403,27 +342,19 @@ namespace Guanima.Redis
                 HandleException(e);
                 throw;
             }
-            finally
-            {
-                DisposeSocket(socket);
-            }
         }
 
 
         protected int ExecuteInt(String key, RedisCommand command)
         {
             var val = ExecValue(key, command);
-            if (Pipelining)
-                return 0;
-            return (int)val;
+            return Pipelining ? 0 : (int) val;
         }
 
         protected int ExecuteInt(IRedisNode node, RedisCommand command)
         {
             var val = ExecValue(node, command);
-            if (Pipelining)
-                return 0;
-            return (int)val;
+            return Pipelining ? 0 : (int) val;
         }
 
 
@@ -481,11 +412,18 @@ namespace Guanima.Redis
                 throw new ObjectDisposedException("RedisClient");
             try
             {
-                _serverPool.Dispose();
+                FlushPipeline();
             }
             finally
             {
-                _serverPool = null;
+                try
+                {
+                    _serverPool.Dispose();
+                } 
+                finally
+                {
+                    _serverPool = null;
+                }
             }
         }
 

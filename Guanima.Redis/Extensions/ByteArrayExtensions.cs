@@ -34,7 +34,7 @@ namespace Guanima.Redis.Extensions
         }
 
  
-        public static string AsString(this byte[] value)
+        public static string FromUtf8(this byte[] value)
         {
             if (value == null) return null;
             if (value.Length == 0)
@@ -60,7 +60,7 @@ namespace Guanima.Redis.Extensions
             var results = new HashSet<string>();
             foreach (var multiData in multiDataList)
             {
-                results.Add(multiData.AsString());
+                results.Add(multiData.FromUtf8());
             }
             return results;
         }
@@ -70,7 +70,7 @@ namespace Guanima.Redis.Extensions
             var dict = new Dictionary<string, byte[]>();
             for (var i = 0; i < multiDataList.Length; i += 2)
             {
-                dict[multiDataList[i].AsString()] = multiDataList[i + 1];
+                dict[multiDataList[i].FromUtf8()] = multiDataList[i + 1];
             }
 
             return dict;

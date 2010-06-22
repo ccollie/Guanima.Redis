@@ -28,36 +28,36 @@ namespace Guanima.Redis.Commands.Transactions
             get { return "MULTIEXEC"; }
         }
 
-        public override void SendCommand(IRedisProtocol protocol)
+        public override void WriteTo(PooledSocket socket)
         {
-            new MultiCommand().SendCommand(protocol);
+            new MultiCommand().WriteTo(socket);
 
             foreach (var command in _commands)
             {
-                command.SendCommand(protocol);
+                command.WriteTo(socket);
             }
-            new ExecCommand().SendCommand(protocol);                    
+            new ExecCommand().WriteTo(socket);                    
         }
 
-        public override void ReadReply(IRedisProtocol protocol)
+        public override void ReadFrom(PooledSocket socket)
         {
-            protocol.ExpectSingleLineReply(); // OK - matching Multi
+            socket.ExpectSingleLineReply(); // OK - matching Multi
 
             for (int i = 0; i < _commands.Count; i++)
             {
                 // read "QUEUED"
-                var status = protocol.ExpectSingleLineReply();
+                var status = socket.ExpectSingleLineReply();
             }
             // The result is a multi-bulk, so
             // consume the count of returned items
-            var count = protocol.ExpectMultiBulkCount();
+            var count = socket.ExpectMultiBulkCount();
             if (count != _commands.Count)
                 throw new RedisClientException(
                     String.Format("Invalid number of bulk responses. Expected {0}, Got {1}", _commands.Count, count));
 
             foreach (var command in _commands)
             {
-                command.ReadReply(protocol);
+                command.ReadFrom(socket);
             }
         }
 

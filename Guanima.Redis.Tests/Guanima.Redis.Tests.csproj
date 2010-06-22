@@ -42,12 +42,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseRedisClientTest.cs" />
+    <Compile Include="RedisClientTestFixture.cs" />
     <Compile Include="HashTests.cs" />
     <Compile Include="KetamaTest.cs" />
     <Compile Include="GenericTests.cs" />
     <Compile Include="ListTests.cs" />
     <Compile Include="LockTests.cs" />
+    <Compile Include="PubSub.cs" />
     <Compile Include="StringTests.cs" />
     <Compile Include="RedisClientTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

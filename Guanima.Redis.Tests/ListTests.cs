@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class ListTests : BaseRedisClientTests
+    public class ListTests : RedisClientTestFixture
     {
         const string ListId = "testlist";
         const string ListId2 = "testlist2";
@@ -33,7 +33,7 @@ namespace Guanima.Redis.Tests
         public void Can_GetListLength()
         {
             var storeMembers = new List<string> { "one", "two", "three", "four" };
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 storeMembers.ForEach(x => redis.RPush(ListId, x));
 
@@ -47,7 +47,7 @@ namespace Guanima.Redis.Tests
         public void Can_GetItemFromList()
         {
             var storeMembers = new List<string> { "one", "two", "three", "four" };
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 storeMembers.ForEach(x => redis.RPush(ListId, x));
 
@@ -62,7 +62,7 @@ namespace Guanima.Redis.Tests
         public void Can_Set_Item_In_List()
         {
             var storeMembers = new List<string> { "one", "two", "three", "four" };
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 storeMembers.ForEach(x => redis.RPush(ListId, x));
 
@@ -79,7 +79,7 @@ namespace Guanima.Redis.Tests
         public void Test_RPop()
         {
             var storeMembers = new List<string> { "one", "two", "three", "four" };
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 storeMembers.ForEach(x => redis.RPush(ListId, x));
 
@@ -110,10 +110,10 @@ namespace Guanima.Redis.Tests
 
 
         [Test]
-        public void Can_DequeueFromList()
+        public void Can_Dequeue_From_List()
         {
             var storeMembers = new List<string> { "one", "two", "three", "four" };
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 storeMembers.ForEach(x => redis.RPush(ListId, x));
 
@@ -130,7 +130,7 @@ namespace Guanima.Redis.Tests
             var list2Members = new List<string> { "five", "six", "seven" };
             const string item4 = "four";
 
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 list1Members.ForEach(x => redis.RPush(ListId, x));
                 list2Members.ForEach(x => redis.RPush(ListId2, x));
@@ -149,7 +149,7 @@ namespace Guanima.Redis.Tests
 
 
         [Test]
-        //	{LREM, starting from tail with negative count}
+        //	LREM, starting from tail with negative count
         public void Test_LRem()  
         {
             r.FlushDB();

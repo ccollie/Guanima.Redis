@@ -1,6 +1,7 @@
 using System;
 using System.Configuration;
 using System.Net;
+using Guanima.Redis.Utils;
 
 namespace Guanima.Redis.Configuration
 {
@@ -57,6 +58,20 @@ namespace Guanima.Redis.Configuration
             set { base["password"] = value; }
         }
 
+        private IPAddress ParseIpAddress(string candidate)
+        {
+            if (String.IsNullOrEmpty(candidate))
+                return null;
+            try
+            {
+                return IPAddress.Parse(candidate);
+            } 
+            catch
+            {
+                return null;
+            }
+        }
+
 		/// <summary>
 		/// Gets the <see cref="T:System.Net.IPEndPoint"/> representation of this instance.
 		/// </summary>
@@ -66,21 +81,30 @@ namespace Guanima.Redis.Configuration
 			{
 				if (_endpoint == null)
 				{
-					IPHostEntry entry = Dns.GetHostEntry(Address);
-					IPAddress[] list = entry.AddressList;
+				   
+                    // Check if a numeric ip was specified. If so, skip DNS lookup
+				    IPAddress address = null;
 
-					if (list.Length == 0)
-						throw new ConfigurationErrorsException(String.Format("Could not resolve host '{0}'.", Address));
+                    if (!IPAddress.TryParse(Address, out address) || address == null)
+                    {
+                        IPHostEntry entry = Dns.GetHostEntry(Address);
+                        IPAddress[] list = entry.AddressList;
 
-					// get the first IPv4 address from the list (not sure how Redis works against ipv6 addresses whihc are not localhost)
-                    IPAddress address = null;
-                    for (int i = 0; i < list.Length; i++) {
-                        if (list[i].AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) {
-                            address = list[i];
-                            break;
+                        if (list.Length == 0)
+                            throw new ConfigurationErrorsException(String.Format("Could not resolve host '{0}'.",
+                                                                                 Address));
+
+                        // get the first IPv4 address from the list (not sure how Redis works against ipv6 addresses whihc are not localhost)
+                        for (int i = 0; i < list.Length; i++)
+                        {
+                            if (list[i].AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            {
+                                address = list[i];
+                                break;
+                            }
                         }
                     }
-					if (address == null)
+				    if (address == null)
 						throw new ConfigurationErrorsException(String.Format("Host '{0}' does not have an IPv4 address.", Address));
 						
 					_endpoint = new IPEndPoint(address, Port);

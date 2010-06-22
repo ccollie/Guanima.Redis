@@ -67,7 +67,7 @@ namespace Guanima.Redis.Tests.Transcoders
         public void Can_Properly_Serialize_Arbitrary_Classes()
         {
             var now = DateTime.Now;
-            var user = new TestClass()
+            var user = new TestClass
                            {
                                Credits = 1.0,
                                IsActive = false,

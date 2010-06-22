@@ -14,7 +14,7 @@ namespace Guanima.Redis.Commands.Hashes
             vals[2] = field;
             if (parms.Length > 0)
                 parms.CopyTo(vals,3);
-            Elements = vals;
+            Arguments = vals;
         }
 
         protected void ValidateField(string field)

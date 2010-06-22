@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace Guanima.Redis.Tests
 {
-    public class HashTests : BaseRedisClientTests
+    public class HashTests : RedisClientTestFixture
     {
 
         [Test]

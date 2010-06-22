@@ -1,6 +1,4 @@
-﻿using Guanima.Redis.Commands.Transactions;
-
-namespace Guanima.Redis
+﻿namespace Guanima.Redis
 {
     partial class RedisClient
     {
@@ -26,21 +24,15 @@ namespace Guanima.Redis
         // dont know if i like this
         internal void FinishTransaction()
         {
-            if (InTransaction && _queuedCommands != null)
+            if (InTransaction && _queuedCommandList != null)
             {
                 try
                 {
-                    foreach (var kvp in _queuedCommands)
+                    foreach (var kvp in _commandQueues)
                     {
                         var node = kvp.Key;
-                        var commandsForThisNode = kvp.Value;
-
-                        using(var socket = node.Acquire())
-                        {
-                            var command = new MultiExecCommand(commandsForThisNode);
-                            protocolHandler.Socket = socket;
-                            command.Execute(protocolHandler);
-                        }
+                        // TODO: Fix this....
+                        kvp.Value.ReadAllResults();
                     }
                 }
                 catch(RedisClientException ex)

@@ -49,35 +49,35 @@ namespace Guanima.Redis.Commands.Generic
             get { return _transactional; }
         }
 
-        public override void SendCommand(IRedisProtocol protocol)
+        public override void WriteTo(PooledSocket socket)
         {
             if (Transactional)
-                _multi.SendCommand(protocol);
+                _multi.WriteTo(socket);
 
             foreach (var command in _commands)
             {
                 // todo: if transactional, ignore MULTI or EXEC, if any
-                command.SendCommand(protocol);
+                command.WriteTo(socket);
             }
             if (Transactional)
-                _exec.SendCommand(protocol);
+                _exec.WriteTo(socket);
         }
 
-        public override void ReadReply(IRedisProtocol protocol)
+        public override void ReadFrom(PooledSocket socket)
         {
             var replies = new List<RedisValue>();
             if (Transactional)
             {
-                _multi.ReadReply(protocol);  // OK
+                _multi.ReadFrom(socket);  // OK
 
                 for (int i = 0; i < _commands.Count; i++)
                 {
                     // read "QUEUED"
-                    var status = protocol.ExpectSingleLineReply();
+                    var status = socket.ExpectSingleLineReply();
                 }
                 // The result is a multi-bulk, so
                 // consume the count of returned items
-                var count = protocol.ExpectMultiBulkCount();
+                var count = socket.ExpectMultiBulkCount();
                 if (count != _commands.Count)
                     throw new RedisClientException(
                         String.Format("Invalid number of bulk responses. Expected {0}, Got {1}", _commands.Count, count));
@@ -85,10 +85,10 @@ namespace Guanima.Redis.Commands.Generic
 
             foreach (var command in _commands)
             {
-                command.ReadReply(protocol);
-                replies.Add(command.Result);
+                command.ReadFrom(socket);
+                replies.Add(command.Value);
             }
-            this.Result = new RedisValue(){Type = RedisValueType.MultiBulk, MultiBulkValues =replies.ToArray()};   
+            this.Value = new RedisValue(){Type = RedisValueType.MultiBulk, MultiBulkValues =replies.ToArray()};   
         }
 
     

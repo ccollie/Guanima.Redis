@@ -9,7 +9,7 @@ namespace Guanima.Redis.Commands.Sets
         public SDiffStoreCommand(string dstKey, IEnumerable<String> keys) 
         {
             ValidateKey(dstKey);
-            Elements = CommandUtils.ConstructParameters(Name, dstKey, keys);
+            Arguments = CommandUtils.ConstructParameters(Name, dstKey, keys);
         }
     }
 }

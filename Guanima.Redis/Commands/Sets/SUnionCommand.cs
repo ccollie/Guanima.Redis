@@ -8,7 +8,7 @@ namespace Guanima.Redis.Commands.Sets
     {
         public SUnionCommand(IEnumerable<String> keys) 
         {
-            Elements = CommandUtils.ConstructParameters(Name, keys);
+            Arguments = CommandUtils.ConstructParameters(Name, keys);
         }
     }
 }

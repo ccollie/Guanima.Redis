@@ -75,13 +75,13 @@ namespace Guanima.Redis
             return result;
         }
 
-        public int Incr(string key)
+        public long Incr(string key)
         {
             var transformedKey = TransformKey(key);
             return ExecuteInt(transformedKey, new IncrCommand(transformedKey));
         }
 
-        public int Incr(string key, int delta)
+        public long Incr(string key, long delta)
         {
             var transformedKey = TransformKey(key);
             return ExecuteInt(transformedKey, new IncrByCommand(transformedKey, delta));

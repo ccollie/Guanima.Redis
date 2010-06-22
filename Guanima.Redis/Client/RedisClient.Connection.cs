@@ -9,7 +9,7 @@ namespace Guanima.Redis
         public bool Ping()
         {
             bool alive = true;
-            ForeachServer(node=>
+            ForEachServer(node=>
                               {
                                   if (alive)
                                       alive = Ping(node);
@@ -35,7 +35,7 @@ namespace Guanima.Redis
         
         public void Auth()
         {
-            ForeachServer(node =>
+            ForEachServer(node =>
             {
                 if (!String.IsNullOrEmpty(node.Password))
                 {
@@ -47,7 +47,7 @@ namespace Guanima.Redis
 
         public void Auth(string password)
         {
-            ForeachServer(node => Execute(node, new AuthCommand(node.Password)));
+            ForEachServer(node => Execute(node, new AuthCommand(node.Password)));
         }
 
         public void Auth(IRedisNode node, string password)
@@ -62,7 +62,7 @@ namespace Guanima.Redis
 
         public void Quit()
         {
-            ForeachServer(node => Execute(node, new QuitCommand()));
+            ForEachServer(node => Execute(node, new QuitCommand()));
         }
     }
 }

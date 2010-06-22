@@ -1,4 +1,5 @@
 ﻿using System;
+using Guanima.Redis.Protocol;
 
 namespace Guanima.Redis.Commands.PubSub
 {
@@ -13,6 +14,11 @@ namespace Guanima.Redis.Commands.PubSub
                 throw  new ArgumentException("Class name must have a value","channelName");
 
             SetParameters(channelName, message);
+        }
+
+        public override void ReadFrom(PooledSocket socket)
+        {
+            this.Value = socket.ExpectIntegerReply();
         }
     }
 }

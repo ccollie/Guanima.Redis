@@ -11,6 +11,8 @@ namespace Guanima.Redis
     public enum RedisValueType : byte
     {
         //TODO: null/pending
+        None,
+        Inline,
         Error = (byte)'-',
         Success = (byte)'+',
         Bulk = (byte)'$',
@@ -26,12 +28,190 @@ namespace Guanima.Redis
 
     public struct RedisValue : IEnumerable<RedisValue>
     {
-        internal const int OneGb = 1073741824;  // TODO: Move to global class
+        internal const int OneGb = 1073741824;
 
         public static readonly RedisValue Empty = new RedisValue() {IsEmpty = true};
 
         #region Stream Helpers
+
         static readonly Encoding Encoding = Encoding.UTF8;
+        private static readonly byte[] NewLine = new[] { (byte)'\r', (byte)'\n' };
+
+        private static void WriteBulk(PooledSocket socket, byte[] buffer)
+        {
+            WriteByte(socket,(byte)RedisValueType.Bulk);
+            socket.Write(LongToBuffer(buffer.Length));
+            socket.Write(NewLine);
+            socket.Write(buffer);
+            socket.Write(NewLine);
+        }
+
+        private static void WriteByte(PooledSocket socket, byte b)
+        {
+            var buf = new byte[] { b };
+            socket.Write(buf);
+        }
+
+        public void Write(PooledSocket socket)
+        {
+            switch (Type)
+            {
+                case RedisValueType.Error:
+                case RedisValueType.Inline:
+                case RedisValueType.Success:
+                case RedisValueType.Integer:
+                case RedisValueType.Bulk:
+                    WriteBulk(socket, Data);
+                    break;
+                case RedisValueType.MultiBulk:
+                    WriteByte(socket, (byte)Type);
+                    socket.Write(LongToBuffer(MultiBulkValues.Length));
+                    socket.Write(NewLine);
+                    foreach (RedisValue child in MultiBulkValues)
+                    {
+                        child.Write(socket);
+                    }
+                    break;
+                default:
+                    throw new InvalidDataException("Unknown value type!");
+            }
+        }
+
+
+        public static RedisValue Read(PooledSocket socket)
+        {
+            int c = socket.ReadByte();
+            if (c == -1)
+                throw new RedisResponseException("No more data");
+
+            var s = socket.ReadLine();
+
+            //Log("R: " + s);
+            //CheckStatus(c, s);
+            switch (c)
+            {
+                case (int)RedisValueType.MultiBulk:
+                    return ParseMultiBulk(socket, s);
+
+                case (int)RedisValueType.Bulk:
+                    return ParseBulk(socket, s);
+
+                case (int)RedisValueType.Success:
+                    return ParseStatus(s);
+
+                case (int)RedisValueType.Error:
+                    return ParseError(s);
+
+                case (int)RedisValueType.Integer:
+                    return ParseInteger(s);
+            }
+            throw new RedisResponseException("Unrecognized response type prefix : " + (char)c);
+        }
+
+        #region Parser Helpers
+
+        private static RedisValue ParseStatus(string s)
+        {
+            if (!String.IsNullOrEmpty(s))
+                return RedisValue.Success(s);
+
+            throw new RedisResponseException("Null data reply on status request");
+        }
+
+        private static RedisValue ParseError(string s)
+        {
+            if (!String.IsNullOrEmpty(s))
+            {
+                s = s.StartsWith("ERR") ? s.Substring(4) : s;
+                return Error(s);
+            }
+
+            throw new RedisResponseException("No message on error response");
+        }
+
+        private static RedisValue ParseInteger(string s)
+        {
+            long i;
+            if (long.TryParse(s, out i))
+            {
+                return (RedisValue)i;
+            }
+            throw new RedisResponseException("Malformed reply on integer response: " + s);
+        }
+
+        private static RedisValue ParseBulk(PooledSocket socket, string line)
+        {
+            if (line == "-1")
+                return RedisValue.Empty;
+
+            int n;
+
+            if (Int32.TryParse(line, out n))
+            {
+                var retbuf = new byte[n];
+                socket.Read(retbuf, 0, n);
+                if (socket.ReadByte() != '\r' || socket.ReadByte() != '\n')
+                    throw new RedisResponseException("Invalid termination");
+                return retbuf;
+            }
+            throw new RedisResponseException("Invalid length : " + line);
+        }
+
+        private static RedisValue ParseMultiBulk(PooledSocket socket, string line)
+        {
+            int count;
+            if (int.TryParse(line, out count))
+            {
+                byte[][] result;
+                if (count == -1)
+                    result = Empty;
+                else if (count == 0)
+                    result = new byte[0][] { };
+                else
+                {
+                    result = new byte[count][];
+
+                    for (var i = 0; i < count; i++)
+                    {
+                        result[i] = ReadBulkData(socket);
+                    }
+                }
+                return result;
+            }
+            throw new RedisClientException("Expected item count in Multibulk response");
+        }
+
+        static byte[] ReadBulkData(PooledSocket socket)
+        {
+            string r = socket.ReadLine();
+
+            // Log("R: {0}", r);
+            if (r.Length == 0)
+                throw new RedisResponseException("Zero length respose");
+
+            char c = r[0];
+            if (c == '-')
+                throw new RedisResponseException(r.StartsWith("-ERR") ? r.Substring(5) : r.Substring(1));
+            if (c == '$')
+            {
+                if (r == "$-1")
+                    return null;
+                int n;
+
+                if (Int32.TryParse(r.Substring(1), out n))
+                {
+                    var retbuf = new byte[n];
+                    socket.Read(retbuf, 0, n);
+                    if (socket.ReadByte() != '\r' || socket.ReadByte() != '\n')
+                        throw new RedisResponseException("Invalid termination");
+                    return retbuf;
+                }
+                throw new RedisResponseException("Invalid length");
+            }
+            throw new RedisResponseException("Unexpected bulk reply: " + r);
+        }
+
+        #endregion
 
         #endregion
 
@@ -40,6 +220,7 @@ namespace Guanima.Redis
         {
             return Encoding.GetString(buffer);
         }
+
         static byte[] StringToBuffer(string str)
         {
             return Encoding.GetBytes(str);
@@ -323,7 +504,6 @@ namespace Guanima.Redis
             return GetEnumerator();
         }
         #endregion
-
 
         #region Equals/GetHashCode()
 

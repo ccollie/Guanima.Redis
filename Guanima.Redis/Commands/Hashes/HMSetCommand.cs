@@ -23,7 +23,7 @@ namespace Guanima.Redis.Commands.Hashes
                 parms[i++] = kvp.Key;
                 parms[i++] = kvp.Value;
             }
-            Elements = parms;
+            Arguments = parms;
         }
     }
 }

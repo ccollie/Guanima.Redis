@@ -1,12 +1,11 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using Guanima.Redis.Commands;
 using NUnit.Framework;
 
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class TransactionTests : BaseRedisClientTests
+    public class TransactionTests : RedisClientTestFixture
     {
         [Test]
         public void Test_Transaction_Basics() 
@@ -25,7 +24,7 @@ namespace Guanima.Redis.Tests
                 lRangeCommand = cmds[0];
             }
             var expected = new[] {"a", "b", "c"};
-            AssertListsAreEqual(expected, lRangeCommand.Result);            
+            AssertListsAreEqual(expected, lRangeCommand.Value);            
         } 
 
     }

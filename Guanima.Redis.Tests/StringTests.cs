@@ -3,14 +3,14 @@
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class StringTests : BaseRedisClientTests
+    public class StringTests : RedisClientTestFixture
     {
 
         [Test]
         public void Can_Set_And_Get_String()
         {
             const string value = "value";
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 redis["key"] = value;
                 string valueString = redis["key"];
@@ -24,7 +24,7 @@ namespace Guanima.Redis.Tests
         {
             const string key = "key with spaces";
             const string value = "value";
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 redis.Set(key, value);
                 var valueString = (string) redis[key];
@@ -44,7 +44,7 @@ namespace Guanima.Redis.Tests
                 value[i] = (byte)i;
             }
 
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 redis[key] = value;
                 byte[] resultValue = redis[key];
@@ -66,7 +66,7 @@ namespace Guanima.Redis.Tests
                 }
             }
 
-            using (RedisClient client = GetClient())
+            using (RedisClient client = CreateClient())
             {
                 client.Set("BigBuffer", bigBuffer);
 
@@ -102,7 +102,7 @@ namespace Guanima.Redis.Tests
         [Test]
         public void GetKeys_On_Non_Existent_Keys_Returns_Empty_Collection()
         {
-            using (var redis = GetClient())
+            using (var redis = CreateClient())
             {
                 var matchingKeys = redis.GetKeys("ss-tests:NOTEXISTS");
 

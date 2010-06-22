@@ -1,11 +1,10 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using NUnit.Framework;
 
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class ClientGenericTests : BaseRedisClientTests
+    public class ClientGenericTests : RedisClientTestFixture
     {
         private const string Key = "_TEST_KEY_";
 
@@ -18,9 +17,9 @@ namespace Guanima.Redis.Tests
             r.Select(1);
             r.Set(Key, "DB1");
             r.Select(0);
-            Assert.AreEqual(r.GetString(Key), "DB0");
+            Assert.AreEqual("DB0", r.GetString(Key));
             r.Select(1);
-            Assert.AreEqual(r.GetString(Key), "DB1");
+            Assert.AreEqual("DB1", r.GetString(Key));
         }
         #endregion
 

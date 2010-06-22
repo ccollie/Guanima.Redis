@@ -12,7 +12,7 @@ using NUnit.Framework;
 namespace Guanima.Redis.Tests
 {
     [TestFixture]
-    public class BaseRedisClientTests
+    public class RedisClientTestFixture
     {
         public const int TestDb = 9;
         protected RedisClient r;
@@ -20,7 +20,7 @@ namespace Guanima.Redis.Tests
         [SetUp]
         public virtual void Setup()
         {
-            r = GetClient();
+            r = CreateClient();
             r.FlushDB();
         }
 
@@ -32,10 +32,9 @@ namespace Guanima.Redis.Tests
         }
 
 
-        protected virtual RedisClient GetClient()
+        protected virtual RedisClient CreateClient()
         {
             var client = GetSingleNodeClient();
-            client.Select(TestDb);
             return client;
         }
 
@@ -54,6 +53,7 @@ namespace Guanima.Redis.Tests
             mcc.SocketPool.MaxPoolSize = 100;
             mcc.SocketPool.ConnectionTimeout = new TimeSpan(0, 0, 10);
             mcc.SocketPool.DeadTimeout = new TimeSpan(0, 0, 30);
+            mcc.DefaultDB = 9;
             return new RedisClient(mcc);
         }
 
